@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createPollID, createUserID } from 'src/ids';
-import { CreatePollFields, JoinPollFields, RejoinPollFields } from './types';
 import { PollsRepository } from './polls.repository';
+import { CreatePollFields, JoinPollFields, RejoinPollFields } from './types';
+import { JwtService } from '@nestjs/jwt';
+import { create } from 'domain';
 
 @Injectable()
 export class PollsService {
   private readonly logger = new Logger(PollsService.name);
-  constructor(private readonly pollsRepository: PollsRepository) {}
+  constructor(
+    private readonly pollsRepository: PollsRepository,
+    private readonly jwtService: JwtService,
+  ) {}
   async createPoll(fields: CreatePollFields) {
     const pollID = createPollID();
     const userID = createUserID();
@@ -18,14 +23,27 @@ export class PollsService {
     });
 
     // TODO - create an accessToken based off of pollID and userID
+    this.logger.debug(
+      `Creating poll with ID: ${pollID} for user with ID: ${userID}`,
+    );
+
+    const signedString = this.jwtService.sign(
+      {
+        pollID: createdPoll.id,
+        name: fields.name,
+      },
+      {
+        subject: userID,
+      },
+    );
 
     return {
       poll: createdPoll,
-      // accessToken
+      accessToken: signedString,
     };
   }
 
-   async joinPoll(fields: JoinPollFields) {
+  async joinPoll(fields: JoinPollFields) {
     const userID = createUserID();
 
     this.logger.debug(
@@ -33,12 +51,23 @@ export class PollsService {
     );
 
     const joinedPoll = await this.pollsRepository.getPoll(fields.pollID);
+    this.logger.debug(
+      `Creating token string for pollID: ${joinedPoll.id} and userID: ${userID}`,
+    );
 
-    // TODO - create access Token
+    const signedString = this.jwtService.sign(
+      {
+        pollID: joinedPoll.id,
+        name: fields.name,
+      },
+      {
+        subject: userID,
+      },
+    );
 
     return {
       poll: joinedPoll,
-      // accessToken: signedString,
+      accessToken: signedString,
     };
   }
 
