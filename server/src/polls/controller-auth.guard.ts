@@ -6,14 +6,14 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { RequestWithAuth } from './types';
 
 @Injectable()
 export class ControllerAuthGuard implements CanActivate {
   private readonly logger = new Logger(ControllerAuthGuard.name);
   constructor(private readonly jwtService: JwtService) {}
   canActivate(context: ExecutionContext): boolean | Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request: RequestWithAuth = context.switchToHttp().getRequest();
 
     this.logger.log('Checking authentication for request body:', request.body);
 
